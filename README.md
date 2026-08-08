@@ -4,7 +4,7 @@ A production-style machine learning serving platform implementing **shadow deplo
 
 Built to demonstrate the operational side of ML engineering: how a new model candidate is safely evaluated against production traffic before it's ever trusted to serve a single real user.
 
-[![CI](https://github.com/Sohel2309/ml-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/ml-platform/actions/workflows/ci.yml)
+[![CI](https://github.com/Sohel2309/ML_Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Sohel2309/ML_Platform/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![Tests](https://img.shields.io/badge/tests-11%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
