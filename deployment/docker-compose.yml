@@ -1,0 +1,95 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: ml-platform-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: ml-platform-gateway
+    command: ["api"]
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:////app/logs/requests.db
+      - REDIS_URL=redis://redis:6379/0
+      - ASYNC_LOGGING=true
+      - CANARY_TRAFFIC_PERCENT=0
+      - SHADOW_ENABLED=true
+    volumes:
+      - ml_artifacts:/app/artifacts
+      - ml_data:/app/data
+      - ml_logs:/app/logs
+      - ml_mlruns:/app/mlruns
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  celery_worker:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: ml-platform-celery-worker
+    command: ["worker"]
+    environment:
+      - DATABASE_URL=sqlite:////app/logs/requests.db
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ml_artifacts:/app/artifacts
+      - ml_data:/app/data
+      - ml_logs:/app/logs
+      - ml_mlruns:/app/mlruns
+    depends_on:
+      redis:
+        condition: service_healthy
+      gateway:
+        condition: service_started
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: ml-platform-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - gateway
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: ml-platform-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  ml_artifacts:
+  ml_data:
+  ml_logs:
+  ml_mlruns:
+  grafana_data:

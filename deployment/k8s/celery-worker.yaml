@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-platform-celery-worker
+  namespace: ml-platform
+  labels:
+    app: ml-platform-celery-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ml-platform-celery-worker
+  template:
+    metadata:
+      labels:
+        app: ml-platform-celery-worker
+    spec:
+      containers:
+        - name: celery-worker
+          image: ml-platform-gateway:local
+          imagePullPolicy: IfNotPresent
+          args: ["worker"]
+          envFrom:
+            - configMapRef:
+                name: ml-platform-config
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+

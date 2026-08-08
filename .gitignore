@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.venv/
+env/
+*.egg-info/
+
+# Generated at first run - don't commit, let train_models.py regenerate them
+artifacts/
+data/
+mlruns/
+logs/
+*.db
+
+.env
+.DS_Store

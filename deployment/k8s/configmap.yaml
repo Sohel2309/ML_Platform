@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ml-platform-config
+  namespace: ml-platform
+data:
+  DATABASE_URL: "sqlite:////app/logs/requests.db"
+  REDIS_URL: "redis://redis:6379/0"
+  ASYNC_LOGGING: "true"
+  CANARY_TRAFFIC_PERCENT: "0"
+  SHADOW_ENABLED: "true"

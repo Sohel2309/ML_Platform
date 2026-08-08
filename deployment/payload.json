@@ -1,0 +1,10 @@
+{
+  "age": 40,
+  "education_num": 14,
+  "hours_per_week": 50,
+  "capital_gain": 0,
+  "capital_loss": 0,
+  "workclass": "Government",
+  "marital_status": "Single",
+  "occupation": "Prof-specialty"
+}
