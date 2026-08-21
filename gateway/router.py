@@ -42,17 +42,24 @@ class TrafficRouter:
         self._canary_latencies = deque(maxlen=200)
         CANARY_TRAFFIC_PERCENT.set(self.config.canary_traffic_percent)
 
-    def route(self, request_id: str) -> str:
-        """Return which model name should SERVE this request (prod or canary)."""
+    def route(self, request_id: str) -> tuple[str, bool]:
+        """Return (model_name, is_canary) -- which model should SERVE this
+        request, and whether that was the canary model. Callers must use
+        is_canary to decide whether to feed record_canary_result(), since
+        the rolling health window below is canary-only by design."""
         if self.config.canary_traffic_percent <= 0:
-            return self.config.serving_model
+            return self.config.serving_model, False
 
         bucket = int(hashlib.sha256(request_id.encode()).hexdigest(), 16) % 100
         if bucket < self.config.canary_traffic_percent:
-            return self.config.canary_model
-        return self.config.serving_model
+            return self.config.canary_model, True
+        return self.config.serving_model, False
 
     def record_canary_result(self, success: bool, latency_seconds: float):
+        """Only call this for requests that were actually routed to the
+        canary model -- the rolling window here drives maybe_rollback(),
+        which must reflect canary health alone, not blended prod+canary
+        traffic."""
         self._canary_errors.append(0 if success else 1)
         self._canary_latencies.append(latency_seconds)
 

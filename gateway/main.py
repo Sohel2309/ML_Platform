@@ -113,7 +113,7 @@ def predict(req: PredictRequest, background_tasks: BackgroundTasks):
     request_id = req.request_id or str(uuid.uuid4())
     payload = req.model_dump(exclude={"request_id"})
 
-    serving_model_name = router.route(request_id)
+    serving_model_name, is_canary = router.route(request_id)
     REQUEST_COUNT.labels(route="predict", model=serving_model_name).inc()
     ROUTED_MODEL_COUNT.labels(model=serving_model_name).inc()
 
@@ -128,7 +128,11 @@ def predict(req: PredictRequest, background_tasks: BackgroundTasks):
             result = registry.predict(serving_model_name, payload)
         except Exception as exc:  # noqa: BLE001
             MODEL_ERROR_COUNT.labels(model=serving_model_name).inc()
-            router.record_canary_result(success=False, latency_seconds=time.perf_counter() - model_start)
+            if is_canary:
+                router.record_canary_result(
+                    success=False,
+                    latency_seconds=time.perf_counter() - model_start,
+                )
             logger.exception("Prediction failed: %s", exc)
             raise HTTPException(status_code=500, detail="Model inference failed") from exc
         MODEL_INFERENCE_LATENCY.labels(model=serving_model_name).observe(time.perf_counter() - model_start)
@@ -137,7 +141,11 @@ def predict(req: PredictRequest, background_tasks: BackgroundTasks):
 
     latency_seconds = time.perf_counter() - start
     REQUEST_LATENCY.observe(latency_seconds)
-    router.record_canary_result(success=True, latency_seconds=latency_seconds)
+    if is_canary:
+        router.record_canary_result(
+            success=True,
+            latency_seconds=latency_seconds,
+        )
 
     background_tasks.add_task(
         _log, "serving", serving_model_name, payload, result, latency_seconds * 1000, request_id
